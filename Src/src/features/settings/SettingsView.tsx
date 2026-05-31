@@ -1,0 +1,123 @@
+import { useEffect, useState } from 'react';
+import {
+  Badge,
+  Card,
+  Divider,
+  Field,
+  Input,
+  MessageBar,
+  MessageBarBody,
+  Subtitle2,
+  Text,
+  Title3,
+  makeStyles,
+  tokens
+} from '@fluentui/react-components';
+import { imageModels, textModels } from '../../config/models';
+import { imageApi } from '../../services/imageApi';
+
+const useStyles = makeStyles({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalL,
+    maxWidth: '720px'
+  },
+  card: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalM
+  },
+  row: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS
+  },
+  models: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalS
+  }
+});
+
+export function SettingsView() {
+  const styles = useStyles();
+  const [configured, setConfigured] = useState<boolean | null>(null);
+  const [saveLocation, setSaveLocation] = useState('');
+  const [version, setVersion] = useState('');
+
+  useEffect(() => {
+    void (async () => {
+      const [status, location, appVersion] = await Promise.all([
+        imageApi.getApiKeyStatus(),
+        imageApi.getSaveLocation(),
+        imageApi.getAppVersion()
+      ]);
+      setConfigured(status.configured);
+      setSaveLocation(location);
+      setVersion(appVersion);
+    })();
+  }, []);
+
+  return (
+    <div className={styles.root}>
+      <Title3>Settings</Title3>
+
+      <Card className={styles.card}>
+        <Subtitle2>OpenAI API key</Subtitle2>
+        {configured === null ? (
+          <Text>Checking…</Text>
+        ) : configured ? (
+          <div className={styles.row}>
+            <Badge appearance="filled" color="success">
+              Configured
+            </Badge>
+            <Text size={200}>
+              The key is loaded from the .env file and never shown here.
+            </Text>
+          </div>
+        ) : (
+          <MessageBar intent="warning">
+            <MessageBarBody>
+              No API key found. Create a .env file in the Src folder with
+              OPENAI_API_KEY=your_key and restart the app.
+            </MessageBarBody>
+          </MessageBar>
+        )}
+      </Card>
+
+      <Card className={styles.card}>
+        <Subtitle2>Models</Subtitle2>
+        <Text size={200}>Image models</Text>
+        <div className={styles.models}>
+          {imageModels.map((model) => (
+            <Badge key={model.id} appearance="outline">
+              {model.label}
+            </Badge>
+          ))}
+        </div>
+        <Text size={200}>Text models</Text>
+        <div className={styles.models}>
+          {textModels.map((model) => (
+            <Badge key={model.id} appearance="outline">
+              {model.label}
+            </Badge>
+          ))}
+        </div>
+        <Text size={100}>
+          Edit src/config/models.ts to change available models.
+        </Text>
+      </Card>
+
+      <Card className={styles.card}>
+        <Subtitle2>Storage</Subtitle2>
+        <Field label="Saved images location">
+          <Input readOnly value={saveLocation} />
+        </Field>
+      </Card>
+
+      <Divider />
+      <Text size={200}>ImageMix version {version}</Text>
+    </div>
+  );
+}

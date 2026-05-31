@@ -1,0 +1,267 @@
+import { useState } from 'react';
+import {
+  Button,
+  Card,
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogSurface,
+  DialogTitle,
+  Image,
+  Spinner,
+  Text,
+  Title3,
+  Toolbar,
+  Tooltip,
+  makeStyles,
+  tokens
+} from '@fluentui/react-components';
+import {
+  AddCircle20Regular,
+  ArrowDownload20Regular,
+  ArrowClockwise20Regular,
+  Delete20Regular,
+  Eye20Regular
+} from '@fluentui/react-icons';
+import { useImageLibrary, type LibraryItem } from '../../hooks/useImageLibrary';
+import { useSelection } from '../../hooks/useSelection';
+import { imageApi } from '../../services/imageApi';
+
+const useStyles = makeStyles({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalM,
+    height: '100%'
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+    gap: tokens.spacingHorizontalM,
+    overflowY: 'auto',
+    paddingRight: tokens.spacingHorizontalS
+  },
+  card: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalXS
+  },
+  thumb: {
+    width: '100%',
+    height: '160px',
+    objectFit: 'cover',
+    borderRadius: tokens.borderRadiusMedium,
+    backgroundColor: tokens.colorNeutralBackground3
+  },
+  meta: {
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+    color: tokens.colorNeutralForeground2,
+    fontSize: tokens.fontSizeBase200
+  },
+  actions: {
+    display: 'flex',
+    gap: '2px',
+    flexWrap: 'wrap'
+  },
+  empty: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: tokens.spacingVerticalS,
+    height: '60%',
+    color: tokens.colorNeutralForeground3
+  },
+  previewImg: {
+    maxWidth: '100%',
+    maxHeight: '60vh',
+    objectFit: 'contain'
+  }
+});
+
+interface LibraryViewProps {
+  onUsedAsSource?: () => void;
+}
+
+export function LibraryView({ onUsedAsSource }: LibraryViewProps) {
+  const styles = useStyles();
+  const { items, loading, error, refresh, removeItem } = useImageLibrary();
+  const { add } = useSelection();
+  const [preview, setPreview] = useState<LibraryItem | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<LibraryItem | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const useAsSource = (item: LibraryItem) => {
+    add({
+      id: `lib-${item.id}`,
+      name: item.fileName,
+      dataUrl: item.dataUrl,
+      libraryId: item.id
+    });
+    onUsedAsSource?.();
+  };
+
+  const onDelete = async () => {
+    if (!confirmDelete) {
+      return;
+    }
+    try {
+      await removeItem(confirmDelete.id);
+      setConfirmDelete(null);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Delete failed.');
+    }
+  };
+
+  return (
+    <div className={styles.root}>
+      <div className={styles.header}>
+        <Title3>Library</Title3>
+        <Button
+          appearance="subtle"
+          icon={<ArrowClockwise20Regular />}
+          onClick={() => void refresh()}
+        >
+          Refresh
+        </Button>
+      </div>
+
+      {error ? <Text>{error}</Text> : null}
+      {actionError ? <Text>{actionError}</Text> : null}
+
+      {loading ? (
+        <div className={styles.empty}>
+          <Spinner label="Loading library…" />
+        </div>
+      ) : items.length === 0 ? (
+        <div className={styles.empty}>
+          <Text size={400}>No saved images yet.</Text>
+          <Text size={200}>
+            Generate or fuse an image and it will appear here automatically.
+          </Text>
+        </div>
+      ) : (
+        <div className={styles.grid}>
+          {items.map((item) => (
+            <Card key={item.id} className={styles.card}>
+              <img
+                className={styles.thumb}
+                src={item.dataUrl}
+                alt={item.prompt}
+              />
+              <Text className={styles.meta} title={item.prompt}>
+                {item.prompt || '(no prompt)'}
+              </Text>
+              <Text size={100}>
+                {item.model} · {new Date(item.createdAt).toLocaleString()}
+              </Text>
+              <Toolbar className={styles.actions} size="small">
+                <Tooltip content="Preview" relationship="label">
+                  <Button
+                    size="small"
+                    appearance="subtle"
+                    icon={<Eye20Regular />}
+                    onClick={() => setPreview(item)}
+                  />
+                </Tooltip>
+                <Tooltip content="Use as fusion source" relationship="label">
+                  <Button
+                    size="small"
+                    appearance="subtle"
+                    icon={<AddCircle20Regular />}
+                    onClick={() => useAsSource(item)}
+                  />
+                </Tooltip>
+                <Tooltip content="Export" relationship="label">
+                  <Button
+                    size="small"
+                    appearance="subtle"
+                    icon={<ArrowDownload20Regular />}
+                    onClick={() => void imageApi.exportImage(item.id)}
+                  />
+                </Tooltip>
+                <Tooltip content="Delete" relationship="label">
+                  <Button
+                    size="small"
+                    appearance="subtle"
+                    icon={<Delete20Regular />}
+                    onClick={() => setConfirmDelete(item)}
+                  />
+                </Tooltip>
+              </Toolbar>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog
+        open={Boolean(preview)}
+        onOpenChange={(_, data) => !data.open && setPreview(null)}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Image preview</DialogTitle>
+            <DialogContent>
+              {preview ? (
+                <Image
+                  className={styles.previewImg}
+                  src={preview.dataUrl}
+                  alt={preview.prompt}
+                />
+              ) : null}
+              <Text size={200}>{preview?.prompt}</Text>
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => setPreview(null)}>
+                Close
+              </Button>
+              {preview ? (
+                <Button
+                  appearance="primary"
+                  icon={<ArrowDownload20Regular />}
+                  onClick={() => void imageApi.exportImage(preview.id)}
+                >
+                  Export
+                </Button>
+              ) : null}
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(confirmDelete)}
+        onOpenChange={(_, data) => !data.open && setConfirmDelete(null)}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Delete image?</DialogTitle>
+            <DialogContent>
+              This will permanently remove the saved image from your library.
+            </DialogContent>
+            <DialogActions>
+              <Button
+                appearance="secondary"
+                onClick={() => setConfirmDelete(null)}
+              >
+                Cancel
+              </Button>
+              <Button appearance="primary" onClick={() => void onDelete()}>
+                Delete
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+    </div>
+  );
+}
