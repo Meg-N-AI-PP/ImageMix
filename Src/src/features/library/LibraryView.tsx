@@ -81,9 +81,21 @@ const useStyles = makeStyles({
     height: '60%',
     color: tokens.colorNeutralForeground3
   },
+  previewSurface: {
+    maxWidth: '90vw',
+    width: 'fit-content'
+  },
+  previewContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: tokens.spacingVerticalM
+  },
   previewImg: {
-    maxWidth: '100%',
-    maxHeight: '60vh',
+    maxWidth: 'min(1024px, 85vw)',
+    maxHeight: '80vh',
+    width: 'auto',
+    height: 'auto',
     objectFit: 'contain'
   }
 });
@@ -207,10 +219,10 @@ export function LibraryView({ onUsedAsSource }: LibraryViewProps) {
         open={Boolean(preview)}
         onOpenChange={(_, data) => !data.open && setPreview(null)}
       >
-        <DialogSurface>
+        <DialogSurface className={styles.previewSurface}>
           <DialogBody>
             <DialogTitle>Image preview</DialogTitle>
-            <DialogContent>
+            <DialogContent className={styles.previewContent}>
               {preview ? (
                 <Image
                   className={styles.previewImg}

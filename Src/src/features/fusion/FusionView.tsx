@@ -26,7 +26,7 @@ import {
 } from '../../config/models';
 import type { ImageSize, SourceImage } from '../../../shared/types';
 import { getStatusText, useGeneration } from '../../hooks/useGeneration';
-import { useSelection } from '../../hooks/useSelection';
+import { useSelection, type SelectedSource } from '../../hooks/useSelection';
 import { imageApi } from '../../services/imageApi';
 
 const useStyles = makeStyles({
@@ -49,9 +49,31 @@ const useStyles = makeStyles({
   }
 });
 
+function buildFusionPrompt(
+  prompt: string,
+  presets: string[],
+  sources: SelectedSource[]
+): string {
+  const parts = [prompt.trim()];
+  if (presets.length) {
+    parts.push(`Style presets: ${presets.join(', ')}.`);
+  }
+  if (sources.length) {
+    parts.push(
+      `Source image weights: ${sources
+        .map(
+          (source, index) =>
+            `Image ${index + 1} (${source.name}) ${source.weightPercent}%`
+        )
+        .join('; ')}. Respect these proportions in the final fusion.`
+    );
+  }
+  return parts.filter(Boolean).join('\n\n');
+}
+
 export function FusionView() {
   const styles = useStyles();
-  const { sources, addMany, remove, move } = useSelection();
+  const { sources, addMany, remove, move, updateWeight } = useSelection();
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState(defaultImageModel);
   const [size, setSize] = useState<ImageSize>(defaultSize);
@@ -68,15 +90,18 @@ export function FusionView() {
     );
   };
 
+  const removePreset = (preset: string) => {
+    setPresets((current) => current.filter((p) => p !== preset));
+  };
+
   const onGenerate = async () => {
     const images: SourceImage[] = sources.map((source) => ({
       data: source.dataUrl,
       name: source.name
     }));
-    const styleText = presets.length ? ` Style: ${presets.join(', ')}.` : '';
     const result = await generate({
       mode: sources.length >= 2 ? 'image-fusion' : 'text-image-fusion',
-      prompt: `${prompt}${styleText}`.trim(),
+      prompt: buildFusionPrompt(prompt, presets, sources),
       model,
       size,
       images,
@@ -95,8 +120,14 @@ export function FusionView() {
     }
   };
 
+  const totalWeight = sources.reduce(
+    (sum, source) => sum + source.weightPercent,
+    0
+  );
+  const weightsValid = sources.length > 0 && totalWeight === 100;
+
   const canGenerate =
-    !busy && sources.length >= 1 && prompt.trim().length > 0;
+    !busy && sources.length >= 1 && prompt.trim().length > 0 && weightsValid;
 
   return (
     <div className={styles.layout}>
@@ -125,8 +156,17 @@ export function FusionView() {
           images={sources}
           onRemove={remove}
           onMove={move}
+          onWeightChange={updateWeight}
+          showWeights
           disabled={busy}
         />
+        {sources.length > 0 && !weightsValid ? (
+          <MessageBar intent="warning">
+            <MessageBarBody>
+              Source percentages must total 100%. Current total: {totalWeight}%.
+            </MessageBarBody>
+          </MessageBar>
+        ) : null}
 
         <PromptInput
           label="Fusion instructions"
@@ -139,7 +179,10 @@ export function FusionView() {
 
         <Subtitle2>Style presets</Subtitle2>
         <TagGroup
-          onDismiss={(_, data) => togglePreset(String(data.value))}
+          onDismiss={(event, data) => {
+            event.stopPropagation();
+            removePreset(String(data.value));
+          }}
         >
           {stylePresets.map((preset) => (
             <Tag

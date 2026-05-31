@@ -45,9 +45,14 @@ export interface GenerationResult {
 
 export interface ImprovePromptRequest {
   model: string;
-  prompts: string[];
+  prompts?: string[];
+  items?: PromptMixerInput[];
   instruction?: string;
 }
+
+export type PromptMixerInput =
+  | { type: 'text'; text: string; weightPercent: number }
+  | { type: 'image'; data: string; name: string; weightPercent: number };
 
 export interface ImprovePromptResult {
   success: boolean;

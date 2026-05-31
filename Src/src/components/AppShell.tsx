@@ -99,7 +99,9 @@ export function AppShell() {
       </aside>
 
       <main className={styles.content}>
-        {tab === 'generate' ? <GenerateView /> : null}
+        {tab === 'generate' ? (
+          <GenerateView onUsedAsSource={() => setTab('fusion')} />
+        ) : null}
         {tab === 'fusion' ? <FusionView /> : null}
         {tab === 'mixer' ? <PromptMixerView /> : null}
         {tab === 'library' ? (

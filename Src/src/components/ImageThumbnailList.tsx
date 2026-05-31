@@ -1,5 +1,6 @@
 import {
   Button,
+  Input,
   Text,
   Tooltip,
   makeStyles,
@@ -44,6 +45,15 @@ const useStyles = makeStyles({
     overflow: 'hidden',
     textOverflow: 'ellipsis'
   },
+  weight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalXXS,
+    padding: `${tokens.spacingVerticalXXS} ${tokens.spacingHorizontalXS}`
+  },
+  weightInput: {
+    width: '64px'
+  },
   controls: {
     position: 'absolute',
     top: tokens.spacingVerticalXXS,
@@ -64,6 +74,8 @@ interface ImageThumbnailListProps {
   images: SelectedSource[];
   onRemove: (id: string) => void;
   onMove?: (id: string, direction: -1 | 1) => void;
+  onWeightChange?: (id: string, weightPercent: number) => void;
+  showWeights?: boolean;
   disabled?: boolean;
 }
 
@@ -71,6 +83,8 @@ export function ImageThumbnailList({
   images,
   onRemove,
   onMove,
+  onWeightChange,
+  showWeights,
   disabled
 }: ImageThumbnailListProps) {
   const styles = useStyles();
@@ -120,6 +134,24 @@ export function ImageThumbnailList({
           <Text className={styles.name} title={image.name}>
             {image.name}
           </Text>
+          {showWeights && onWeightChange ? (
+            <div className={styles.weight}>
+              <Input
+                className={styles.weightInput}
+                type="number"
+                min={0}
+                max={100}
+                size="small"
+                value={String(image.weightPercent)}
+                disabled={disabled}
+                contentAfter={<Text size={100}>%</Text>}
+                onChange={(_, data) =>
+                  onWeightChange(image.id, Number(data.value) || 0)
+                }
+                aria-label={`Percentage for ${image.name}`}
+              />
+            </div>
+          ) : null}
         </div>
       ))}
     </div>
