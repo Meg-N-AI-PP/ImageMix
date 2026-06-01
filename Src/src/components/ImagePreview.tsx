@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Button,
   Card,
@@ -11,9 +12,11 @@ import {
 } from '@fluentui/react-components';
 import {
   ArrowDownload20Regular,
-  AddCircle20Regular
+  AddCircle20Regular,
+  Copy20Regular
 } from '@fluentui/react-icons';
 import { LoadingOverlay } from './LoadingOverlay';
+import { imageApi } from '../services/imageApi';
 
 const useStyles = makeStyles({
   root: {
@@ -75,6 +78,24 @@ export function ImagePreview({
   onUseAsSource
 }: ImagePreviewProps) {
   const styles = useStyles();
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>(
+    'idle'
+  );
+  const [copyError, setCopyError] = useState<string | null>(null);
+
+  const copyImage = async () => {
+    if (!imageUrl) {
+      return;
+    }
+    const result = await imageApi.copyImage(imageUrl);
+    if (result.success) {
+      setCopyStatus('copied');
+      setCopyError(null);
+    } else {
+      setCopyStatus('error');
+      setCopyError(result.error ?? 'Copy failed.');
+    }
+  };
 
   return (
     <Card className={styles.root}>
@@ -85,7 +106,15 @@ export function ImagePreview({
             <SkeletonItem size={128} />
           </Skeleton>
         ) : imageUrl ? (
-          <img className={styles.image} src={imageUrl} alt="Generated result" />
+          <img
+            className={styles.image}
+            src={imageUrl}
+            alt="Generated result"
+            onContextMenu={(event) => {
+              event.preventDefault();
+              void copyImage();
+            }}
+          />
         ) : (
           <Text className={styles.placeholder}>{emptyHint}</Text>
         )}
@@ -97,8 +126,26 @@ export function ImagePreview({
         </MessageBar>
       ) : null}
 
+      {copyStatus === 'copied' ? (
+        <MessageBar intent="success">
+          <MessageBarBody>Image copied to clipboard.</MessageBarBody>
+        </MessageBar>
+      ) : null}
+      {copyStatus === 'error' ? (
+        <MessageBar intent="error">
+          <MessageBarBody>{copyError}</MessageBarBody>
+        </MessageBar>
+      ) : null}
+
       {imageUrl && !loading ? (
         <div className={styles.actions}>
+          <Button
+            appearance="secondary"
+            icon={<Copy20Regular />}
+            onClick={() => void copyImage()}
+          >
+            Copy
+          </Button>
           {onUseAsSource ? (
             <Button
               appearance="secondary"

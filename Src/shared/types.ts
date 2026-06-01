@@ -4,7 +4,9 @@ export type GenerationMode =
   | 'text-to-image'
   | 'image-fusion'
   | 'text-image-fusion'
-  | 'text-fusion';
+  | 'text-fusion'
+  | 'image-edit'
+  | 'scene-next-image';
 
 export type ImageSize = '1024x1024' | '1024x1536' | '1536x1024';
 
@@ -75,6 +77,11 @@ export interface ExportResult {
   error?: string;
 }
 
+export interface CopyImageResult {
+  success: boolean;
+  error?: string;
+}
+
 // The API surface exposed to the renderer through the preload bridge.
 export interface ImageMixApi {
   generate(request: GenerationRequest): Promise<GenerationResult>;
@@ -83,6 +90,7 @@ export interface ImageMixApi {
   getImageDataUrl(id: string): Promise<string | null>;
   deleteImage(id: string): Promise<{ success: boolean; error?: string }>;
   exportImage(id: string): Promise<ExportResult>;
+  copyImage(dataUrl: string): Promise<CopyImageResult>;
   getApiKeyStatus(): Promise<ApiKeyStatus>;
   getSaveLocation(): Promise<string>;
   getAppVersion(): Promise<string>;

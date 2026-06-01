@@ -123,7 +123,10 @@ export async function improvePrompt(
         const url = item.data.startsWith('data:')
           ? item.data
           : `data:image/png;base64,${item.data}`;
-        content.push({ type: 'text', text: `Image weight: ${item.weightPercent}%` });
+        content.push({
+          type: 'text',
+          text: `Image: ${item.name}. Weight: ${item.weightPercent}%`
+        });
         content.push({ type: 'image_url', image_url: { url } });
       }
     }
