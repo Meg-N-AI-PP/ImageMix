@@ -13,7 +13,11 @@ import {
   makeStyles,
   tokens
 } from '@fluentui/react-components';
-import { ArrowRight20Regular, Wand20Regular } from '@fluentui/react-icons';
+import {
+  ArrowRight20Regular,
+  VideoClip20Regular,
+  Wand20Regular
+} from '@fluentui/react-icons';
 import { ImageDropzone } from '../../components/ImageDropzone';
 import { ImageThumbnailList } from '../../components/ImageThumbnailList';
 import { ImagePreview } from '../../components/ImagePreview';
@@ -24,6 +28,10 @@ import { defaultImageModel, defaultSize, imageModels } from '../../config/models
 import type { ImageSize, SourceImage } from '../../../shared/types';
 import { getStatusText, useGeneration } from '../../hooks/useGeneration';
 import { imageApi } from '../../services/imageApi';
+import type {
+  VideoSceneDraft,
+  VideoSceneImageSource
+} from '../videoScene/videoSceneTypes';
 
 interface SceneSource {
   id: string;
@@ -35,6 +43,10 @@ interface SceneSource {
 interface CharacterReference {
   imageName: string;
   description: string;
+}
+
+interface SceneViewProps {
+  onCreateVideoPrompt?: (draft: VideoSceneDraft) => void;
 }
 
 const MIN_SECONDS = 1;
@@ -91,7 +103,7 @@ function buildScenePrompt(
   return parts.join('\n');
 }
 
-export function SceneView() {
+export function SceneView({ onCreateVideoPrompt }: SceneViewProps) {
   const styles = useStyles();
   const [sceneSource, setSceneSource] = useState<SceneSource | null>(null);
   const [description, setDescription] = useState('');
@@ -103,6 +115,8 @@ export function SceneView() {
   const [improving, setImproving] = useState(false);
   const [mixError, setMixError] = useState<string | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
+  const [videoEndSource, setVideoEndSource] =
+    useState<VideoSceneImageSource | null>(null);
 
   const [consistentCharacterEnabled, setConsistentCharacterEnabled] =
     useState(false);
@@ -196,6 +210,7 @@ export function SceneView() {
     if (!sceneSource) {
       return;
     }
+    setVideoEndSource(null);
     const images: SourceImage[] =
       consistentCharacterEnabled && characterSource
         ? [
@@ -231,6 +246,14 @@ export function SceneView() {
     });
     if (result?.success && result.image) {
       setLastId(result.image.id);
+      if (result.dataUrl) {
+        setVideoEndSource({
+          id: result.image.id,
+          name: result.image.fileName || 'Generated scene end frame',
+          dataUrl: result.dataUrl,
+          libraryId: result.image.id
+        });
+      }
     }
   };
 
@@ -252,6 +275,24 @@ export function SceneView() {
     description.trim().length > 0 &&
     secondsValid &&
     characterReady;
+  const canCreateVideoPrompt = Boolean(
+    onCreateVideoPrompt && sceneSource && videoEndSource
+  );
+
+  const createVideoPromptDraft = () => {
+    if (!sceneSource || !videoEndSource || !onCreateVideoPrompt) {
+      return;
+    }
+    onCreateVideoPrompt({
+      startImage: {
+        id: sceneSource.id,
+        name: sceneSource.name,
+        dataUrl: sceneSource.dataUrl,
+        libraryId: sceneSource.libraryId
+      },
+      endImage: videoEndSource
+    });
+  };
 
   return (
     <div className={styles.layout}>
@@ -338,6 +379,7 @@ export function SceneView() {
               name: first.name,
               dataUrl: first.dataUrl
             });
+            setVideoEndSource(null);
           }}
           onErrors={setFileErrors}
         />
@@ -359,6 +401,7 @@ export function SceneView() {
             onRemove={() => {
               setSceneSource(null);
               setMultiWarning(false);
+              setVideoEndSource(null);
             }}
             disabled={busy}
           />
@@ -442,6 +485,16 @@ export function SceneView() {
         >
           {busy ? getStatusText(status) : 'Next Image'}
         </Button>
+        {canCreateVideoPrompt ? (
+          <Button
+            appearance="secondary"
+            className={styles.actionButton}
+            icon={<VideoClip20Regular />}
+            onClick={createVideoPromptDraft}
+          >
+            Generate Video Prompt?
+          </Button>
+        ) : null}
       </Card>
 
       <ImagePreview

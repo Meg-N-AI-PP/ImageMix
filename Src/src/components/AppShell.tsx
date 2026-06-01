@@ -20,6 +20,8 @@ import { GenerateView } from '../features/generate/GenerateView';
 import { EditView } from '../features/edit/EditView';
 import { FusionView } from '../features/fusion/FusionView';
 import { SceneView } from '../features/scene/SceneView';
+import { VideoSceneView } from '../features/videoScene/VideoSceneView';
+import type { VideoSceneDraft } from '../features/videoScene/videoSceneTypes';
 import { PromptMixerView } from '../features/promptMixer/PromptMixerView';
 import { LibraryView } from '../features/library/LibraryView';
 import { SettingsView } from '../features/settings/SettingsView';
@@ -29,6 +31,7 @@ type TabKey =
   | 'edit'
   | 'fusion'
   | 'scene'
+  | 'videoScene'
   | 'mixer'
   | 'library'
   | 'settings';
@@ -74,6 +77,8 @@ const useStyles = makeStyles({
 export function AppShell() {
   const styles = useStyles();
   const [tab, setTab] = useState<TabKey>('generate');
+  const [videoSceneDraft, setVideoSceneDraft] =
+    useState<VideoSceneDraft | null>(null);
 
   return (
     <div className={styles.shell}>
@@ -100,6 +105,9 @@ export function AppShell() {
           <Tab value="scene" icon={<VideoClip24Regular />}>
             Scene
           </Tab>
+          <Tab value="videoScene" icon={<VideoClip24Regular />}>
+            Video Scene
+          </Tab>
           <Tab value="mixer" icon={<TextField24Regular />}>
             Prompt Mixer
           </Tab>
@@ -121,7 +129,20 @@ export function AppShell() {
         ) : null}
         {tab === 'edit' ? <EditView /> : null}
         {tab === 'fusion' ? <FusionView /> : null}
-        {tab === 'scene' ? <SceneView /> : null}
+        {tab === 'scene' ? (
+          <SceneView
+            onCreateVideoPrompt={(draft) => {
+              setVideoSceneDraft(draft);
+              setTab('videoScene');
+            }}
+          />
+        ) : null}
+        {tab === 'videoScene' ? (
+          <VideoSceneView
+            draft={videoSceneDraft}
+            onDraftConsumed={() => setVideoSceneDraft(null)}
+          />
+        ) : null}
         {tab === 'mixer' ? <PromptMixerView /> : null}
         {tab === 'library' ? (
           <LibraryView onUsedAsSource={() => setTab('fusion')} />
