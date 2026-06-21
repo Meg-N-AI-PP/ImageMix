@@ -1,8 +1,9 @@
-import { ipcMain, dialog, BrowserWindow } from 'electron';
+import { ipcMain, dialog, BrowserWindow, clipboard, nativeImage } from 'electron';
 import { promises as fs } from 'node:fs';
 import { IpcChannels } from '../../shared/ipc';
 import type {
   ApiKeyStatus,
+  CopyImageResult,
   ExportResult,
   GenerationRequest,
   GenerationResult,
@@ -143,6 +144,25 @@ export function registerImageHandlers(): void {
         }
         await fs.copyFile(getImageFilePath(record.fileName), result.filePath);
         return { success: true, path: result.filePath };
+      } catch (error) {
+        return { success: false, error: toFriendlyError(error) };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    IpcChannels.copyImage,
+    async (_event, dataUrl: string): Promise<CopyImageResult> => {
+      try {
+        if (!dataUrl.startsWith('data:image/')) {
+          return { success: false, error: 'Image data is invalid.' };
+        }
+        const image = nativeImage.createFromDataURL(dataUrl);
+        if (image.isEmpty()) {
+          return { success: false, error: 'Image data is empty.' };
+        }
+        clipboard.writeImage(image);
+        return { success: true };
       } catch (error) {
         return { success: false, error: toFriendlyError(error) };
       }

@@ -1,5 +1,6 @@
 import type {
   ApiKeyStatus,
+  CopyImageResult,
   ExportResult,
   GenerationRequest,
   GenerationResult,
@@ -28,6 +29,8 @@ export const imageApi = {
   deleteImage: (id: string): Promise<{ success: boolean; error?: string }> =>
     api().deleteImage(id),
   exportImage: (id: string): Promise<ExportResult> => api().exportImage(id),
+  copyImage: (dataUrl: string): Promise<CopyImageResult> =>
+    api().copyImage(dataUrl),
   getApiKeyStatus: (): Promise<ApiKeyStatus> => api().getApiKeyStatus(),
   getSaveLocation: (): Promise<string> => api().getSaveLocation(),
   getAppVersion: (): Promise<string> => api().getAppVersion()

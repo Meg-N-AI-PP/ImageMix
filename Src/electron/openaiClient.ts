@@ -90,30 +90,83 @@ export async function improvePrompt(
   request: ImprovePromptRequest
 ): Promise<string> {
   const openai = getClient();
-  const ideas = request.prompts
-    .map((idea) => idea.trim())
-    .filter(Boolean)
-    .map((idea, index) => `${index + 1}. ${idea}`)
-    .join('\n');
 
   const instruction =
     request.instruction?.trim() ||
-    'Combine the following ideas into one vivid, coherent image generation prompt. Return only the final prompt text, no extra commentary.';
+    'Combine the following weighted ideas and images into one vivid, coherent image generation prompt. Respect each item\'s percentage as its relative influence on the final image. Return only the final prompt text, no extra commentary.';
 
-  const response = await openai.chat.completions.create({
-    model: request.model,
-    messages: [
-      {
-        role: 'system',
-        content:
-          'You are a helpful assistant that writes concise, descriptive prompts for an image generation model.'
-      },
-      {
-        role: 'user',
-        content: `${instruction}\n\nIdeas:\n${ideas}`
+  let response;
+
+  if (request.items && request.items.length > 0) {
+    const content: Array<
+      | { type: 'text'; text: string }
+      | { type: 'image_url'; image_url: { url: string } }
+    > = [];
+
+    const textParts = request.items
+      .filter((item) => item.type === 'text')
+      .map((item, index) =>
+        item.type === 'text'
+          ? `${index + 1}. (${item.weightPercent}%) ${item.text}`
+          : ''
+      )
+      .filter(Boolean)
+      .join('\n');
+
+    content.push({
+      type: 'text',
+      text: `${instruction}\n\nText ideas:\n${textParts || '(none)'}`
+    });
+
+    for (const item of request.items) {
+      if (item.type === 'image') {
+        const url = item.data.startsWith('data:')
+          ? item.data
+          : `data:image/png;base64,${item.data}`;
+        content.push({
+          type: 'text',
+          text: `Image: ${item.name}. Weight: ${item.weightPercent}%`
+        });
+        content.push({ type: 'image_url', image_url: { url } });
       }
-    ]
-  });
+    }
+
+    response = await openai.chat.completions.create({
+      model: request.model,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a helpful assistant that writes concise, descriptive prompts for an image generation model.'
+        },
+        {
+          role: 'user',
+          content
+        }
+      ]
+    });
+  } else {
+    const ideas = (request.prompts ?? [])
+      .map((idea) => idea.trim())
+      .filter(Boolean)
+      .map((idea, index) => `${index + 1}. ${idea}`)
+      .join('\n');
+
+    response = await openai.chat.completions.create({
+      model: request.model,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a helpful assistant that writes concise, descriptive prompts for an image generation model.'
+        },
+        {
+          role: 'user',
+          content: `${instruction}\n\nIdeas:\n${ideas}`
+        }
+      ]
+    });
+  }
 
   const text = response.choices?.[0]?.message?.content?.trim();
   if (!text) {

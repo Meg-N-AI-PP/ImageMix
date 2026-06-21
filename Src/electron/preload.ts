@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { IpcChannels } from '../shared/ipc';
 import type {
   ApiKeyStatus,
+  CopyImageResult,
   ExportResult,
   GenerationRequest,
   GenerationResult,
@@ -25,6 +26,8 @@ const api: ImageMixApi = {
     ipcRenderer.invoke(IpcChannels.deleteImage, id),
   exportImage: (id: string): Promise<ExportResult> =>
     ipcRenderer.invoke(IpcChannels.exportImage, id),
+  copyImage: (dataUrl: string): Promise<CopyImageResult> =>
+    ipcRenderer.invoke(IpcChannels.copyImage, dataUrl),
   getApiKeyStatus: (): Promise<ApiKeyStatus> =>
     ipcRenderer.invoke(IpcChannels.getApiKeyStatus),
   getSaveLocation: (): Promise<string> =>

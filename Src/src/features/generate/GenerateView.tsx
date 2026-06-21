@@ -43,7 +43,11 @@ const useStyles = makeStyles({
   }
 });
 
-export function GenerateView() {
+interface GenerateViewProps {
+  onUsedAsSource?: () => void;
+}
+
+export function GenerateView({ onUsedAsSource }: GenerateViewProps) {
   const styles = useStyles();
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState(defaultImageModel);
@@ -78,6 +82,7 @@ export function GenerateView() {
         dataUrl: resultUrl,
         libraryId: lastId
       });
+      onUsedAsSource?.();
     }
   };
 

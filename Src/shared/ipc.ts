@@ -6,6 +6,7 @@ export const IpcChannels = {
   getImageDataUrl: 'imagemix:get-image-data-url',
   deleteImage: 'imagemix:delete-image',
   exportImage: 'imagemix:export-image',
+  copyImage: 'imagemix:copy-image',
   getApiKeyStatus: 'imagemix:get-api-key-status',
   getSaveLocation: 'imagemix:get-save-location',
   getAppVersion: 'imagemix:get-app-version'
