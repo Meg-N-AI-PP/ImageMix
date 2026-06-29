@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Badge,
+  Button,
   Card,
   Divider,
   Field,
@@ -43,6 +44,9 @@ const useStyles = makeStyles({
 export function SettingsView() {
   const styles = useStyles();
   const [configured, setConfigured] = useState<boolean | null>(null);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [savingKey, setSavingKey] = useState(false);
+  const [keyMessage, setKeyMessage] = useState<string | null>(null);
   const [saveLocation, setSaveLocation] = useState('');
   const [version, setVersion] = useState('');
 
@@ -59,31 +63,66 @@ export function SettingsView() {
     })();
   }, []);
 
+  const onSaveApiKey = async () => {
+    setSavingKey(true);
+    setKeyMessage(null);
+    try {
+      const status = await imageApi.setApiKey(apiKeyInput.trim());
+      setConfigured(status.configured);
+      setApiKeyInput('');
+      setKeyMessage(
+        status.configured ? 'API key saved.' : 'API key cleared.'
+      );
+    } finally {
+      setSavingKey(false);
+    }
+  };
+
   return (
     <div className={styles.root}>
       <Title3>Settings</Title3>
 
       <Card className={styles.card}>
         <Subtitle2>OpenAI API key</Subtitle2>
-        {configured === null ? (
-          <Text>Checking…</Text>
-        ) : configured ? (
-          <div className={styles.row}>
+        <div className={styles.row}>
+          {configured === null ? (
+            <Text>Checking…</Text>
+          ) : configured ? (
             <Badge appearance="filled" color="success">
               Configured
             </Badge>
-            <Text size={200}>
-              The key is loaded from the .env file and never shown here.
-            </Text>
-          </div>
-        ) : (
-          <MessageBar intent="warning">
-            <MessageBarBody>
-              No API key found. Create a .env file in the Src folder with
-              OPENAI_API_KEY=your_key and restart the app.
-            </MessageBarBody>
+          ) : (
+            <Badge appearance="filled" color="warning">
+              Not configured
+            </Badge>
+          )}
+        </div>
+        <Field label="API key">
+          <Input
+            type="password"
+            value={apiKeyInput}
+            placeholder="sk-..."
+            onChange={(_, data) => setApiKeyInput(data.value)}
+          />
+        </Field>
+        <div className={styles.row}>
+          <Button
+            appearance="primary"
+            disabled={savingKey || apiKeyInput.trim().length === 0}
+            onClick={() => void onSaveApiKey()}
+          >
+            {savingKey ? 'Saving…' : 'Save key'}
+          </Button>
+          <Text size={200}>
+            Stored locally on this device. You can also set OPENAI_API_KEY in a
+            .env file.
+          </Text>
+        </div>
+        {keyMessage ? (
+          <MessageBar intent="success">
+            <MessageBarBody>{keyMessage}</MessageBarBody>
           </MessageBar>
-        )}
+        ) : null}
       </Card>
 
       <Card className={styles.card}>

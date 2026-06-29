@@ -28,10 +28,13 @@ import { ImageThumbnailList } from '../../components/ImageThumbnailList';
 import { PromptInput } from '../../components/PromptInput';
 import { imageApi } from '../../services/imageApi';
 import {
+  cameraAngleOptions,
+  cameraPerspectiveOptions,
   defaultCameraOptions,
   environmentDescriptions
 } from './videoSceneOptions';
 import type {
+  CameraGuidanceOption,
   CameraPositionOption,
   EnvironmentChangeLevel,
   VideoPromptSet,
@@ -180,6 +183,8 @@ function getEnvironmentLabel(level: EnvironmentChangeLevel): string {
 
 function buildVideoPromptInstruction(
   camera: CameraPositionOption,
+  cameraAngle: CameraGuidanceOption,
+  cameraPerspective: CameraGuidanceOption,
   soundEnabled: boolean,
   soundDetail: string,
   mainAction: string,
@@ -200,6 +205,9 @@ function buildVideoPromptInstruction(
     camera.id === 'none'
       ? 'Because the selected camera option is None / hold start camera, keep the camera position and framing like Image 1.'
       : 'Make the camera movement clearly follow the selected camera option.',
+    `Camera angle: ${cameraAngle.label}. ${cameraAngle.description}`,
+    `Camera perspective: ${cameraPerspective.label}. ${cameraPerspective.description}`,
+    'Every returned prompt must explicitly respect the selected camera angle and camera perspective while preserving continuity between Image 1 and Image 2.',
     `Environment change level: ${getEnvironmentLabel(environmentLevel)}. ${environmentDescriptions[environmentLevel]}`,
     soundLine,
     'Choose the ideal video duration as a whole number from 4 to 15 seconds based on the distance between the frames, the main action, camera movement, environment change, and sound direction.',
@@ -273,6 +281,11 @@ export function VideoSceneView({ draft, onDraftConsumed }: VideoSceneViewProps) 
     CameraPositionOption[]
   >(() => loadCustomCameraOptions());
   const [selectedCameraId, setSelectedCameraId] = useState('none');
+  const [selectedCameraAngleId, setSelectedCameraAngleId] = useState(
+    cameraAngleOptions[0].id
+  );
+  const [selectedCameraPerspectiveId, setSelectedCameraPerspectiveId] =
+    useState(cameraPerspectiveOptions[0].id);
   const [customCameraName, setCustomCameraName] = useState('');
   const [customCameraDescription, setCustomCameraDescription] = useState('');
   const [customCameraError, setCustomCameraError] = useState<string | null>(null);
@@ -316,6 +329,13 @@ export function VideoSceneView({ draft, onDraftConsumed }: VideoSceneViewProps) 
   const selectedCamera =
     cameraOptions.find((option) => option.id === selectedCameraId) ??
     cameraOptions[0];
+  const selectedCameraAngle =
+    cameraAngleOptions.find((option) => option.id === selectedCameraAngleId) ??
+    cameraAngleOptions[0];
+  const selectedCameraPerspective =
+    cameraPerspectiveOptions.find(
+      (option) => option.id === selectedCameraPerspectiveId
+    ) ?? cameraPerspectiveOptions[0];
   const selectedEnvironmentDescription = environmentDescriptions[environmentLevel];
 
   useEffect(() => {
@@ -479,6 +499,8 @@ export function VideoSceneView({ draft, onDraftConsumed }: VideoSceneViewProps) 
         model: 'gpt-5.5',
         instruction: buildVideoPromptInstruction(
           selectedCamera,
+          selectedCameraAngle,
+          selectedCameraPerspective,
           soundEnabled,
           soundDetail,
           mainAction,
@@ -490,6 +512,8 @@ export function VideoSceneView({ draft, onDraftConsumed }: VideoSceneViewProps) 
             text: [
               `Main action: ${mainAction.trim()}`,
               `Camera position change: ${selectedCamera.label} - ${selectedCamera.description}`,
+              `Camera angle: ${selectedCameraAngle.label} - ${selectedCameraAngle.description}`,
+              `Camera perspective: ${selectedCameraPerspective.label} - ${selectedCameraPerspective.description}`,
               `Environment change level: ${getEnvironmentLabel(environmentLevel)} - ${selectedEnvironmentDescription}`,
               soundEnabled
                 ? `Sound: ${soundDetail.trim() || 'Infer fitting sound from the frames and action.'}`
@@ -681,6 +705,50 @@ export function VideoSceneView({ draft, onDraftConsumed }: VideoSceneViewProps) 
             <MessageBarBody>{suggestionError}</MessageBarBody>
           </MessageBar>
         ) : null}
+
+        <Field label="Camera angle">
+          <Dropdown
+            value={selectedCameraAngle.label}
+            selectedOptions={[selectedCameraAngle.id]}
+            disabled={generating || suggesting}
+            onOptionSelect={(_, data) => {
+              if (data.optionValue) {
+                setSelectedCameraAngleId(data.optionValue);
+              }
+            }}
+          >
+            {cameraAngleOptions.map((option) => (
+              <Option key={option.id} value={option.id} text={option.label}>
+                {option.label}
+              </Option>
+            ))}
+          </Dropdown>
+        </Field>
+        <Text className={styles.helperText} size={200}>
+          {selectedCameraAngle.description}
+        </Text>
+
+        <Field label="Camera perspective">
+          <Dropdown
+            value={selectedCameraPerspective.label}
+            selectedOptions={[selectedCameraPerspective.id]}
+            disabled={generating || suggesting}
+            onOptionSelect={(_, data) => {
+              if (data.optionValue) {
+                setSelectedCameraPerspectiveId(data.optionValue);
+              }
+            }}
+          >
+            {cameraPerspectiveOptions.map((option) => (
+              <Option key={option.id} value={option.id} text={option.label}>
+                {option.label}
+              </Option>
+            ))}
+          </Dropdown>
+        </Field>
+        <Text className={styles.helperText} size={200}>
+          {selectedCameraPerspective.description}
+        </Text>
 
         <Subtitle2>Add camera style</Subtitle2>
         <div className={styles.row}>

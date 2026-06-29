@@ -32,6 +32,7 @@ export const imageApi = {
   copyImage: (dataUrl: string): Promise<CopyImageResult> =>
     api().copyImage(dataUrl),
   getApiKeyStatus: (): Promise<ApiKeyStatus> => api().getApiKeyStatus(),
+  setApiKey: (key: string): Promise<ApiKeyStatus> => api().setApiKey(key),
   getSaveLocation: (): Promise<string> => api().getSaveLocation(),
   getAppVersion: (): Promise<string> => api().getAppVersion()
 };

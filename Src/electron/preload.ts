@@ -30,6 +30,8 @@ const api: ImageMixApi = {
     ipcRenderer.invoke(IpcChannels.copyImage, dataUrl),
   getApiKeyStatus: (): Promise<ApiKeyStatus> =>
     ipcRenderer.invoke(IpcChannels.getApiKeyStatus),
+  setApiKey: (key: string): Promise<ApiKeyStatus> =>
+    ipcRenderer.invoke(IpcChannels.setApiKey, key),
   getSaveLocation: (): Promise<string> =>
     ipcRenderer.invoke(IpcChannels.getSaveLocation),
   getAppVersion: (): Promise<string> =>
@@ -37,3 +39,12 @@ const api: ImageMixApi = {
 };
 
 contextBridge.exposeInMainWorld('imageMix', api);
+
+// Separate, minimal bridge used by the floating logo widget window.
+const widgetApi = {
+  restore: (): void => ipcRenderer.send(IpcChannels.widgetRestore),
+  moveBy: (deltaX: number, deltaY: number): void =>
+    ipcRenderer.send(IpcChannels.widgetMoveBy, deltaX, deltaY)
+};
+
+contextBridge.exposeInMainWorld('imageMixWidget', widgetApi);
