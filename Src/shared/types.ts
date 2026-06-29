@@ -92,6 +92,7 @@ export interface ImageMixApi {
   exportImage(id: string): Promise<ExportResult>;
   copyImage(dataUrl: string): Promise<CopyImageResult>;
   getApiKeyStatus(): Promise<ApiKeyStatus>;
+  setApiKey(key: string): Promise<ApiKeyStatus>;
   getSaveLocation(): Promise<string>;
   getAppVersion(): Promise<string>;
 }

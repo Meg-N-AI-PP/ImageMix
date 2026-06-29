@@ -3,25 +3,39 @@ import type {
   GenerationRequest,
   ImprovePromptRequest
 } from '../shared/types';
+import { getStoredApiKey } from './settingsStore';
 
-// OpenAI access lives only in the main process. The API key is read from the
-// environment and never exposed to the renderer.
+// OpenAI access lives only in the main process. The API key comes from the
+// in-app Settings store first, then falls back to the OPENAI_API_KEY env var.
+// The key is never exposed back to the renderer.
 
 let client: OpenAI | null = null;
+let clientKey: string | null = null;
+
+function effectiveApiKey(): string {
+  const stored = getStoredApiKey();
+  if (stored) {
+    return stored;
+  }
+  const env = process.env.OPENAI_API_KEY;
+  return env ? env.trim() : '';
+}
 
 export function isApiKeyConfigured(): boolean {
-  const key = process.env.OPENAI_API_KEY;
-  return Boolean(key && key.trim() && key.trim() !== 'your_api_key_here');
+  const key = effectiveApiKey();
+  return Boolean(key && key !== 'your_api_key_here');
 }
 
 function getClient(): OpenAI {
-  if (!isApiKeyConfigured()) {
+  const key = effectiveApiKey();
+  if (!key || key === 'your_api_key_here') {
     throw new Error(
-      'OpenAI API key is not configured. Add OPENAI_API_KEY to the .env file.'
+      'OpenAI API key is not configured. Add it in Settings or set OPENAI_API_KEY.'
     );
   }
-  if (!client) {
-    client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  if (!client || clientKey !== key) {
+    client = new OpenAI({ apiKey: key });
+    clientKey = key;
   }
   return client;
 }

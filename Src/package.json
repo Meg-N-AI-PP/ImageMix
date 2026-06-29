@@ -8,6 +8,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "icons": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-icons.ps1",
     "build": "tsc -p tsconfig.json && vite build && electron-builder",
     "build:renderer": "tsc -p tsconfig.json && vite build",
     "start": "cross-env NODE_ENV=production electron .",
@@ -42,11 +43,21 @@
       "dist/**/*",
       "dist-electron/**/*"
     ],
+    "extraResources": [
+      {
+        "from": "build/icons",
+        "to": "icons"
+      }
+    ],
     "directories": {
-      "output": "release"
+      "output": "portable-build"
     },
     "win": {
-      "target": "nsis"
+      "target": "portable",
+      "icon": "build/icons/icon.ico"
+    },
+    "portable": {
+      "artifactName": "ImageMix-portable-${version}.${ext}"
     }
   }
 }

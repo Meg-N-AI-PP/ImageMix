@@ -1,3 +1,17 @@
 {
-    "sarif-viewer.connectToGithubCodeScanning": "off"
+    "sarif-viewer.connectToGithubCodeScanning": "off",
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/dist/**": true,
+        "**/dist-electron/**": true,
+        "**/release/**": true,
+        "**/portable-build/**": true
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/dist-electron": true,
+        "**/release": true,
+        "**/portable-build": true
+    }
 }

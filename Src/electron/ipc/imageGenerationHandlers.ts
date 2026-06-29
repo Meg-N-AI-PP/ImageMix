@@ -16,6 +16,7 @@ import {
   improvePrompt,
   isApiKeyConfigured
 } from '../openaiClient';
+import { setStoredApiKey } from '../settingsStore';
 import {
   deleteImage,
   getImageDataUrl,
@@ -172,6 +173,14 @@ export function registerImageHandlers(): void {
   ipcMain.handle(
     IpcChannels.getApiKeyStatus,
     async (): Promise<ApiKeyStatus> => {
+      return { configured: isApiKeyConfigured() };
+    }
+  );
+
+  ipcMain.handle(
+    IpcChannels.setApiKey,
+    async (_event, key: string): Promise<ApiKeyStatus> => {
+      setStoredApiKey(typeof key === 'string' ? key : '');
       return { configured: isApiKeyConfigured() };
     }
   );

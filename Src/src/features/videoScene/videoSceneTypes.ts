@@ -14,6 +14,12 @@ export interface CameraPositionOption {
   isCustom?: boolean;
 }
 
+export interface CameraGuidanceOption {
+  id: string;
+  label: string;
+  description: string;
+}
+
 export interface VideoSceneDraft {
   startImage?: VideoSceneImageSource;
   endImage?: VideoSceneImageSource;
